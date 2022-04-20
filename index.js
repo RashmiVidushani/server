@@ -2,18 +2,18 @@ const express=require("express");
 var http=require("http");
 const mysql = require('mysql');
 const app=express();
+var bodyParser=require('body-parser');
+app.use(bodyParser.urlencoded({extented:true}));
 const cors = require('cors');
+app.use(express.json());
 const port = process.env.port||5000;
 var server =http.createServer(app);
 var io= require("socket.io")(server);
-const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "password",
-    database: "chatapp",
-});
+var db=require('./config');
+const userRouter=require("./user");
+app.use("/user",userRouter);
 
-app.use(express.json());
+
 var clients={}
 
 const routes=require("./routes");
@@ -28,6 +28,7 @@ io.on("connection",(socket)=>{
         console.log(id);
         clients[id]=socket;
         console.log(clients);
+
         //socket.id==uid in sql server
         //database.table('signup').withFields(["id","username","bio"])
     });
@@ -38,17 +39,36 @@ io.on("connection",(socket)=>{
     });
 });
 
+app.use(cors({
+    origin: ["http://localhost:5000"],
+    methods: ["GET", "POST","DELETE", "PUT"],
+    credentials: true,
+}));
+server.listen(port,"0.0.0.0",()=>{
+    console.log(`${port}server started`);
+})
+
+
+
+
+
+
+/*
+const db = mysql.createConnection({
+    host: "localhost",
+    user: "root",
+    password: "password",
+    database: "chatapp",
+});
+
 db.connect((err) => {
     if (err) {
         console.log(err);
     }
     console.log('MySql Connected');
 });
-app.use(cors({
-    origin: ["http://localhost:3000"],
-    methods: ["GET", "POST","DELETE", "PUT"],
-    credentials: true,
-}));
+
+
 app.get('/api/getusers', (req, res) => {
     db.query("SELECT * FROM signup", (err, result) => {
         if (err) {
@@ -59,14 +79,17 @@ app.get('/api/getusers', (req, res) => {
     });
 });
 app.post('/api/setusers', (req, res) => {
-    db.query("Insert INTO signup values (idsignup,signupusername,signupbio)", (err, result) => {
+    const uid = req.body.user.uid;
+    const username=req.body.username;
+    const bio=req.body.bio;
+    db.query("Insert INTO signup (idsignup,signupusername,signupbio) values(?,?,?);",[uid],[username],[bio], (err, result) => {
         if (err) {
             console.log(err);
         } else {
             res.send(result);
         }
     });
-});
+});*/
 /*
 app.put('/api/putusers', (req, res) => {
     db.query("Update signup set idsignup=socket.id,signupusername,signupbio)", (err, result) => {
@@ -91,6 +114,3 @@ app.route("/check").get((req,res)=>{
     return res.json("your app is working fine")
 });
 */
-server.listen(port,"0.0.0.0",()=>{
-    console.log("server started");
-})
